@@ -1,0 +1,26 @@
+{
+  "name": "booster_club",
+  "version": "1.0.0",
+  "description": "Booster club app to track event planning, money, and calendar events",
+  "main": "app.js",
+  "scripts": {
+    "test": "NODE_ENV=development jest",
+    "start": "nodemon app.js"
+
+  },
+  "keywords": [],
+  "author": "Lindsay Farias",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "knex": "^0.95.13",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.14",
+    "pg": "^8.7.1"
+  },
+  "devDependencies": {
+    "jest": "^27.3.1",
+    "supertest": "^6.1.6"
+  }
+}
