@@ -9,10 +9,12 @@ With a database, the 1 ROPS booster club will be able to keep track of income an
 ## Routes
 * GET /1rops: will send back all events
 * GET /1rops/{event}: will send back specific details of event
-* POST /1rops/{event}: will allow you to post new receipts for events with reason, expenditures, and associated_member parameters
 * GET /1rops/members: will send back list of members
-* POST /1rops/members: will allow you to register new member with name and position parameters
+* PATCH /1rops/{event}: will update date or income based off of input
 * PATCH /1rops/members/{memberId}: will allow you to change member position
+* POST /1rops: will let you post new events, this route will also update treasury
+* POST /1rops/{event}: will allow you to post new receipts for events with reason, expenditures, and associated_member parameters
+* POST /1rops/members: will allow you to register new member with name and position parameters
 * DELETE /1rops/members/{memberId}: will allow you to delete member from booster club
 
 ## Leaning Tool
