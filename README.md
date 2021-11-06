@@ -7,6 +7,13 @@
 With a database, the 1 ROPS booster club will be able to keep track of income and expenditures and provide a platform for planning big events. The booster club can utilize the information in the database to help provide a healthy continuity for future members.
 
 ## Routes
+* GET /1rops: will send back all events
+* GET /1rops/{event}: will send back specific details of event
+* POST /1rops/{event}: will allow you to post new receipts for events with reason, expenditures, and associated_member parameters
+* GET /1rops/members: will send back list of members
+* POST /1rops/members: will allow you to register new member with name and position parameters
+* PATCH /1rops/members/{memberId}: will allow you to change member position
+* DELETE /1rops/members/{memberId}: will allow you to delete member from booster club
 
 ## Leaning Tool
 This project will also act as a good learning device, providing the steps necessary to create a full stack app
