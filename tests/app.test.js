@@ -141,7 +141,7 @@ describe('Booster club app\'s backend server', () => {
             .set('Accept', 'application/json')
             .expect(201)
             .then((res) => {
-                expect(res.body[0].income).toBe(6025)
+                expect(res.body[0].income).toBe(8525)
                 done();
             })
             .catch((err) => done(err));
@@ -159,4 +159,134 @@ describe('Booster club app\'s backend server', () => {
             })
             .catch(err => done(err));
     });
-})
+
+    test('when receipts are created, the amount should be added to the treasury\'s expenditures', async () => {
+        let result = await knex('treasury')
+            .select('expenditures')
+
+        expect(result).toEqual([{expenditures: 4000}]);
+    });
+
+    test('Should be able to view all patch orders', async () => {
+        let result = await request(app)
+            .get('/1rops/patches')
+            .expect(200)
+
+        expect(result.body).toHaveLength(2);
+        expect(result.body[0].name).toEqual('Crew-1');
+    });
+
+    test('New Patch orders should be able to be created which also makes new receipt post', (done) => {
+        request(app)
+            .post('/1rops/patches')
+            .send(
+                {
+                    name: 'Crew-3',
+                    amount_ordered: 175,
+                    amount_sold: 0,
+                    date_ordered: '2021-09-30',
+                    income: 0,
+                    reason: 'Crew-3 Patches',
+                    expenditures: 1200,
+                    associated_member: 'Heinze'
+                }
+            )
+            .set('Accept', 'application/json')
+            .then((res) => {
+                expect(res.status).toBe(201);
+                expect(res.text).toBe('Patch has been successfully added to database');
+                done();
+            })
+            .catch((err) => done(err));
+    });
+
+    test('expect, receipts, receipt_patch, and treasury to be updated after patch post', async () => {
+        let receipts = await knex('receipts')
+
+        expect(receipts).toHaveLength(7);
+        expect(receipts[6].reason).toEqual('Crew-3 Patches');
+
+        let receiptRelations = await knex('receipt_patch')
+
+        expect(receiptRelations).toHaveLength(3);
+
+        let expenditures = await knex('treasury')
+            .select('expenditures')
+
+        expect(expenditures).toEqual([{expenditures: 4000}]);
+    });
+
+    test('should be able to patch patch entries to update money earned and number sold', (done) => {
+        request(app)
+            .patch('/1rops/patches/2')
+            .send({
+                amount_sold: 50,
+                income: 400
+            })
+            .set('Accept', 'application/json')
+            .then((res) => {
+                expect(res.status).toBe(201);
+                expect(res.body[0].income).toBe(1200);
+                expect(res.body[0].amount_sold).toBe(150);
+                done();
+            })
+            .catch((err) => done(err));
+    });
+
+    test('patch updates to patch patches should also update the income of the treasury', async () => {
+        let income = await knex('treasury')
+            .select('income')
+
+        expect(income).toEqual([{income: 8925}]);
+    });
+
+    test('should be able to reorder patches and patch the amount_ordered of a certain patch and input a new receipt', (done) => {
+        request(app)
+            .patch('/1rops/reorder/3')
+            .send({
+                amount_ordered: 50,
+                reason: 'Crew-3 reorder',
+                expenditures: 200,
+                member_associated: 'Heinze'
+            })
+            .set('Accept', 'application/json')
+            .then( (res) => {
+                expect(res.status).toBe(201);
+                expect(res.text).toBe('Notice that Patches have been reordered');
+                done();
+            })
+            .catch((err) => done(err));
+    });
+
+    test('reorder should add new receipt and update the total amount of patches ordered', async () => {
+        const patchUpdate = await knex('patches')
+            .select('amount_ordered')
+            .where({id: 3});
+        const patchReceipt = await knex('receipt_patch');
+        const receipts = await knex('receipts');
+        const treasury = await knex('treasury')
+            .select('expenditures');
+
+        expect(patchUpdate[0].amount_ordered).toBe(225);
+        expect(receipts).toHaveLength(8);
+        expect(receipts[7].reason).toEqual('Crew-3 reorder');
+        expect(patchReceipt).toHaveLength(4);
+        expect(treasury[0].expenditures).toEqual(4200);
+    });
+
+    test('should be able to retrieve the absolute income from a patch', async () => {
+        let result = await request(app)
+            .get('/1rops/patches/3')
+            .expect(200);
+
+        expect(result.body).toEqual({total: -1400});
+    });
+
+    test('should be able to retrieve the absolute income from an event', async () => {
+        let result = await request(app)
+            .get('1/rops/event/1')
+            .expect(200);
+
+        expect(result.body).toEqual({total: 75});
+    });
+});

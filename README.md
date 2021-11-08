@@ -7,15 +7,22 @@
 With a database, the 1 ROPS booster club will be able to keep track of income and expenditures and provide a platform for planning big events. The booster club can utilize the information in the database to help provide a healthy continuity for future members.
 
 ## Routes
-* GET /1rops: will send back all events
-* GET /1rops/{event}: will send back specific details of event
-* GET /1rops/members: will send back list of members
-* PATCH /1rops/{event}: will update date or income based off of input
-* PATCH /1rops/members/{memberId}: will allow you to change member position
-* POST /1rops: will let you post new events, this route will also update treasury
-* POST /1rops/{event}: will allow you to post new receipts for events with reason, expenditures, and associated_member parameters
-* POST /1rops/members: will allow you to register new member with name and position parameters
-* DELETE /1rops/members/{memberId}: will allow you to delete member from booster club
+* GET /1rops: will send back all events.
+* GET /1rops/{event}: will send back specific details of event.
+* GET /1rops/members: will send back list of members.
+* GET /1rops/patches: will retrieve a list of patch orders.
+* GET /1rops/money: will retrieve total amount of money the booster club has.
+* GET /1rops/event/{eventId}: will let you retrieve net income for an event.
+* GET /1rops/patches/{patchId}: will let you retrieve net income for a patch.
+* PATCH /1rops/{event}: will update date or income based off of input.
+* PATCH /1rops/members/{memberId}: will allow you to change member position.
+* PATCH /1rops/patches/{patchId}: will allow you to update amount of patches sold and amount made for each patch.
+* PATCH /1rops/reorder/{patchId}: will allow you to update number of patches order for a patch and will input new receipt as well as update treasury.
+* POST /1rops: will let you post new events, this route will also update treasury.
+* POST /1rops/{event}: will allow you to post new receipts for events with reason, expenditures, and associated_member parameters.
+* POST /1rops/members: will allow you to register new member with name and position parameters.
+* POST /1rops/patches: will allow you to add new patch orders and receipts for orders.
+* DELETE /1rops/members/{memberId}: will allow you to delete member from booster club.
 
 ## Leaning Tool
 This project will also act as a good learning device, providing the steps necessary to create a full stack app

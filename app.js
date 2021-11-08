@@ -32,11 +32,18 @@ app.get('/1rops', async (req, res) => {
 });
 
 app.get('/1rops/money', async (req, res) => {
-    let result = await knex('treasury')
-        .select('total')
+    let income = await knex('treasury')
+        .select('income')
         .then((data) => data);
 
-    result = result[0];
+    let expenditures = await knex('treasury')
+        .select('expenditures')
+        .then((data) => data);
+    
+    income = income[0].income;
+    expenditures = expenditures[0].expenditures;
+
+    result = {total: income - expenditures};
     res.status(200).send(result);
 });
 
@@ -47,6 +54,60 @@ app.get('/1rops/members', async (req, res) => {
         .from('members');
 
     res.status(200).send(response);
+});
+
+//route to get all previous patch orders
+app.get('/1rops/patches', async (req, res) => {
+    let result = await knex('patches')
+        .then((data) => data);
+
+    res.status(200).send(result);
+});
+
+app.get('/1rops/patches/:patchId', async (req, res) => {
+    let patchId = parseInt(req.params.patchId);
+
+    let income = await knex('patches')
+        .select('income')
+        .where({id: patchId})
+        .then((data) => data);
+    income = income[0].income;
+    const expenditures = await knex
+        .select('r.expenditures')
+        .from('receipts AS r')
+        .where('rp.patch', patchId)
+        .innerJoin('receipt_patch AS rp', 'r.id', '=', 'rp.receipt')
+        .then((data) => data);
+
+    let count = 0;
+    expenditures.forEach( (el) => {return count += el.expenditures});
+    
+    total = {total: income - count};
+
+    res.status(200).send(total);
+});
+
+app.get('/1rops/event/:eventId', async (req, res) => {
+    let patchId = parseInt(req.params.eventId);
+
+    let income = await knex('event')
+        .select('income')
+        .where({id: eventId})
+        .then((data) => data);
+    income = income[0].income;
+    const expenditures = await knex
+        .select('r.expenditures')
+        .from('receipts AS r')
+        .where('re.event', eventId)
+        .innerJoin('receipt_event AS rc', 'r.id', '=', 'rc.receipt')
+        .then((data) => data);
+
+    let count = 0;
+    expenditures.forEach( (el) => {return count += el.expenditures});
+    
+    total = {total: income - count};
+
+    res.status(200).send(total);
 });
 
 //route to get specific details about events to include receipts and committee
@@ -79,6 +140,60 @@ app.get('/1rops/:event', async (req, res) => {
     //if event is not found, send back error
     if(response.event.length === 0) res.status(404).send('Error, event not found!');
     else res.status(200).send(response);
+});
+
+app.patch('/1rops/patches/:patchId', async (req, res) => {
+    const patchId = parseInt(req.params.patchId, 10);
+    const updateInfo = req.body;
+    const soldPatches = updateInfo.amount_sold;
+    const incomeIncrease = updateInfo.income;
+
+    await knex('patches')
+        .increment('amount_sold', soldPatches)
+        .increment('income', incomeIncrease)
+        .where({id: patchId})
+        .then((data) => data);
+    await knex('treasury')
+        .increment('income', incomeIncrease)
+        .then((data) => data);
+    const result = await knex('patches')
+        .where({id: patchId})
+        .then((data) => data);
+
+    res.status(201).send(result);
+})
+
+app.patch('/1rops/reorder/:patchId', async (req, res) => {
+    const patchId = parseInt(req.params.patchId, 10);
+    const updateInfo = req.body;
+    const patchIncrease = updateInfo.amount_ordered;
+    const newReceipt = {
+        reason: updateInfo.reason,
+        associated_member: updateInfo.associated_member,
+        expenditures: updateInfo.expenditures
+    };
+
+    await knex('patches')
+        .increment('amount_ordered', patchIncrease)
+        .where({id: patchId})
+        .then((data) => data);
+    await knex('receipts')
+        .insert(newReceipt)
+        .then((data) => data);
+    await knex('treasury')
+        .increment('expenditures', newReceipt.expenditures);
+
+    let receiptId = await knex('receipts')
+        .select('id')
+        .where({reason: newReceipt.reason})
+        .then((data) => data);
+    receiptId = receiptId[0].id;
+
+    await knex('receipt_patch')
+        .insert({receipt: receiptId, patch: patchId})
+        .then((data) => data);
+
+    res.status(201).send('Notice that Patches have been reordered');
 });
 
 app.patch('/1rops/:eventId', async (req, res) => {
@@ -149,6 +264,50 @@ app.post('/1rops', async (req, res) => {
     res.status(201).send(newEvent)
 });
 
+app.post('/1rops/patches', async (req, res) => {
+    const incomingInfo = req.body;
+
+    const newPatch = {
+        name: incomingInfo.name,
+        date_ordered: incomingInfo.date_ordered,
+        amount_ordered: incomingInfo.amount_ordered,
+        amount_sold: incomingInfo.amount_sold,
+        income: incomingInfo.income
+    };
+
+    const newReceipt = {
+        reason: incomingInfo.reason,
+        associated_member: incomingInfo.associated_member,
+        expenditures: incomingInfo.expenditures
+    };
+
+    await knex('receipts')
+        .insert(newReceipt)
+        .then((data) => data);
+
+    await knex('patches')
+        .insert(newPatch)
+        .then((data) => data);
+
+    let receiptId = await knex('receipts')
+        .select('id')
+        .where({reason: newReceipt.reason})
+        .then((data) => data);
+    receiptId = receiptId[0].id;
+
+    let patchId = await knex('patches')
+        .select('id')
+        .where({name: newPatch.name})
+        .then((data) => data);
+    patchId = patchId[0].id;
+
+    await knex('receipt_patch')
+        .insert({receipt: receiptId, patch: patchId})
+        .then((data) => data);
+
+    res.status(201).send('Patch has been successfully added to database')
+});
+
 app.post('/1rops/:event', async (req, res) => {
     const eventId = parseInt(req.params.event, 10);
     const newReceipt = req.body;
@@ -164,6 +323,9 @@ app.post('/1rops/:event', async (req, res) => {
         res.status(201);
     }
 
+    await knex('treasury')
+        .increment('expenditures', newReceipt.expenditures);
+
     let receiptId = await knex('receipts')
         .select('id')
         .where({reason: newReceipt.reason})
@@ -176,6 +338,7 @@ app.post('/1rops/:event', async (req, res) => {
         .then((data) => data);
     res.send('Receipt successfully uploaded!');
 });
+
 
 app.delete('/1rops/members/:memberId', (req, res) => {
     let memberId = parseInt(req.params.memberId, 10);

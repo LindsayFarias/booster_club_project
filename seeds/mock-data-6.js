@@ -5,7 +5,7 @@ exports.seed = function(knex) {
     .then(function () {
       // Inserts seed entries
       return knex('treasury').insert(
-        {income: 2500, expenditures: 1500, total: 1000}
+        {income: 5000, expenditures: 1500}
       );
     });
 };
