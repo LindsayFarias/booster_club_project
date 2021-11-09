@@ -2,7 +2,7 @@
 exports.up = function(knex) {
   return knex.schema.createTable('patches', table => {
       table.increments('id');
-      table.text('name');
+      table.text('patchName');
       table.integer('amount_ordered');
       table.integer('amount_sold');
       table.date('date_ordered');

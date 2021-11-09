@@ -59,7 +59,7 @@ describe('Booster club app\'s backend server', () => {
             .get('/1rops/members')
             .expect(200)
 
-        expect(result.body).toHaveLength(2);
+        expect(result.body).toHaveLength(3);
         expect(result.body[0]).toHaveProperty('name');
     });
 
@@ -173,7 +173,7 @@ describe('Booster club app\'s backend server', () => {
             .expect(200)
 
         expect(result.body).toHaveLength(2);
-        expect(result.body[0].name).toEqual('Crew-1');
+        expect(result.body[0].patchName).toEqual('Crew-1');
     });
 
     test('New Patch orders should be able to be created which also makes new receipt post', (done) => {
@@ -181,7 +181,7 @@ describe('Booster club app\'s backend server', () => {
             .post('/1rops/patches')
             .send(
                 {
-                    name: 'Crew-3',
+                    patchName: 'Crew-3',
                     amount_ordered: 175,
                     amount_sold: 0,
                     date_ordered: '2021-09-30',
@@ -284,9 +284,73 @@ describe('Booster club app\'s backend server', () => {
 
     test('should be able to retrieve the absolute income from an event', async () => {
         let result = await request(app)
-            .get('1/rops/event/1')
+            .get('/1rops/event/1')
             .expect(200);
 
-        expect(result.body).toEqual({total: 75});
+        expect(result.body).toEqual({total: 225});
     });
+
+    test('should be able to pull preorders for different patches', async () => {
+        let result = await request(app)
+            .get('/1rops/preorder/2')
+            .expect(200)
+
+        expect(result.body.preOrders).toHaveLength(2);
+    });
+
+    test('should be able to post new pre-order list for a patch', (done) => {
+        request(app)
+            .post('/1rops/preorder/3')
+            .send({name: 'Dave Eaton', amount: 200, notes: 'no velcro backing', picked_up: false})
+            .set('Accept', 'application/json')
+            .then((res) => {
+                expect(res.status).toBe(201)
+                expect(res.text).toBe('New pre-order has been added')
+                done();
+            })
+            .catch((err) => done(err));
+    });
+
+    test('should be able to update the amount of patches wanted by a member', (done) => {
+        request(app)
+            .patch('/1rops/preorder/3')
+            .send({amount: 50})
+            .set('Accept', 'application/json')
+            .then((res) => {
+                expect(res.status).toBe(201)
+                expect(res.body).toEqual([{
+                    name: 'Dave Eaton',
+                    amount: 250,
+                    notes: 'no velcro backing',
+                    picked_up: false
+                }])
+                done();
+            })
+            .catch((err) => done(err));
+    })
+    test('should be able to update the whether or not a member has picked up patches', (done) => {
+        request(app)
+            .patch('/1rops/preorder/3')
+            .send({picked_up: true})
+            .set('Accept', 'application/json')
+            .then((res) => {
+                expect(res.status).toBe(201)
+                expect(res.body).toEqual([{
+                    name: 'Dave Eaton',
+                    amount: 250,
+                    notes: 'no velcro backing',
+                    picked_up: true
+                }])
+                done();
+            })
+            .catch((err) => done(err));
+    });
+
+    test('should be able to pull all of the preorders within database', async () => {
+        let result = await request(app)
+            .get('/1rops/preorder')
+            .expect(200)
+
+        expect(result.body).toHaveLength(3);
+    })
 });

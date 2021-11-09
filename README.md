@@ -14,14 +14,19 @@ With a database, the 1 ROPS booster club will be able to keep track of income an
 * GET /1rops/money: will retrieve total amount of money the booster club has.
 * GET /1rops/event/{eventId}: will let you retrieve net income for an event.
 * GET /1rops/patches/{patchId}: will let you retrieve net income for a patch.
+* GET /1rops/preorder: will grab all of the preOrders in database.
+* GET /1rops/receipts: will grab all of the receipts within the database.
+* GET /1rops/preorder/{patchId}: will grab all pre-orders correlating to a specific patch.
 * PATCH /1rops/{event}: will update date or income based off of input.
 * PATCH /1rops/members/{memberId}: will allow you to change member position.
 * PATCH /1rops/patches/{patchId}: will allow you to update amount of patches sold and amount made for each patch.
 * PATCH /1rops/reorder/{patchId}: will allow you to update number of patches order for a patch and will input new receipt as well as update treasury.
+* PATCH /1rops/preorder/{pre-orderId}: will allow you to update whether or not patches have been picked up or update the desired amount of patches.
 * POST /1rops: will let you post new events, this route will also update treasury.
 * POST /1rops/{event}: will allow you to post new receipts for events with reason, expenditures, and associated_member parameters.
 * POST /1rops/members: will allow you to register new member with name and position parameters.
 * POST /1rops/patches: will allow you to add new patch orders and receipts for orders.
+* POST /1rops/preorder: will allow you to add a new pre-order into the system.
 * DELETE /1rops/members/{memberId}: will allow you to delete member from booster club.
 
 ## Leaning Tool

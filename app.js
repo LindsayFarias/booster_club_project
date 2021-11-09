@@ -47,11 +47,27 @@ app.get('/1rops/money', async (req, res) => {
     res.status(200).send(result);
 });
 
+app.get('/1rops/receipts', async (req, res) => {
+    const result = await knex('receipts')
+
+    res.status(200).send(result);
+})
+
 //members routes to list members, establish new members, change a members position, and delete members
 app.get('/1rops/members', async (req, res) => {
     let response = await knex
-        .select('name', 'position')
-        .from('members');
+    .select('name', 'position')
+    .from('members');
+    
+    res.status(200).send(response);
+});
+
+app.get('/1rops/preorder', async (req, res) => {
+    let response = await knex
+        .select('po.name', 'po.amount', 'po.notes', 'po.picked_up', 'p.patchName')
+        .from('pre_orders as po')
+        .leftJoin('patch_preOrder as pp', 'pp.preOrder', '=', 'po.id')
+        .leftJoin('patches as p', 'p.id', 'pp.patch');
 
     res.status(200).send(response);
 });
@@ -87,10 +103,28 @@ app.get('/1rops/patches/:patchId', async (req, res) => {
     res.status(200).send(total);
 });
 
-app.get('/1rops/event/:eventId', async (req, res) => {
-    let patchId = parseInt(req.params.eventId);
 
-    let income = await knex('event')
+app.get('/1rops/preorder/:patchId', async (req, res) => {
+    let patchId = parseInt(req.params.patchId, 10);
+    let patchName = await knex('patches')
+        .select('patchName')
+        .where({id: patchId})
+        .then(data => data);
+    patchName = patchName[0].name;
+    let result = await knex
+        .select('name', 'amount', 'notes', 'picked_up')
+        .from('pre_orders as po')
+        .where('pp.patch', patchId)
+        .innerJoin('patch_preOrder as pp', 'pp.preOrder', '=', 'po.id')
+        .then( data => data)
+
+    res.status(200).send({patchName: patchName, preOrders: result});
+});
+
+app.get('/1rops/event/:eventId', async (req, res) => {
+    let eventId = parseInt(req.params.eventId);
+
+    let income = await knex('events')
         .select('income')
         .where({id: eventId})
         .then((data) => data);
@@ -99,7 +133,7 @@ app.get('/1rops/event/:eventId', async (req, res) => {
         .select('r.expenditures')
         .from('receipts AS r')
         .where('re.event', eventId)
-        .innerJoin('receipt_event AS rc', 'r.id', '=', 'rc.receipt')
+        .innerJoin('receipt_event AS re', 'r.id', '=', 're.receipt')
         .then((data) => data);
 
     let count = 0;
@@ -202,12 +236,14 @@ app.patch('/1rops/:eventId', async (req, res) => {
     let change = req.body;
 
     change.income 
-    ? knex('events').increment('income', change.income)
+    ? await knex('events').increment('income', change.income)
         .where({id: eventId})
         .then((data => data))
-    : await knex('events').update({
+    : await knex('events')
+        .update({
         date: change.date
-    });
+        })
+        .where({id: eventId});
 
     if(change.income){
         await knex('treasury')
@@ -242,10 +278,33 @@ app.patch('/1rops/members/:memberID', async (req, res) => {
     res.status(201).send(result);
 });
 
-app.post('/1rops/members', (req, res) => {
+app.patch('/1rops/preorder/:preOrderId', async (req, res) => {
+    let preOrderId = parseInt(req.params.preOrderId, 10);
+    let change = req.body;
+    
+    console.log(change.amount);
+    change.amount 
+    ? await knex('pre_orders').increment('amount', change.amount)
+        .where({id: preOrderId})
+        .then((data => data))
+    : await knex('pre_orders')
+        .update({
+        picked_up: change.picked_up
+        })
+        .where({id: preOrderId});
+
+    const result = await knex('pre_orders')
+        .select('name', 'amount', 'notes', 'picked_up' )
+        .where({id: preOrderId})
+        .then(data => data);
+
+    res.status(201).send(result);
+});
+
+app.post('/1rops/members', async (req, res) => {
     let newMember = req.body;
     if(newMember.name && newMember.position){
-        knex('members').insert(newMember);
+        await knex('members').insert(newMember);
         res.status(201).send(`Welcome to the 1 ROPS Booster Club ${newMember.name}!`)
     }
 });
@@ -268,7 +327,7 @@ app.post('/1rops/patches', async (req, res) => {
     const incomingInfo = req.body;
 
     const newPatch = {
-        name: incomingInfo.name,
+        patchName: incomingInfo.patchName,
         date_ordered: incomingInfo.date_ordered,
         amount_ordered: incomingInfo.amount_ordered,
         amount_sold: incomingInfo.amount_sold,
@@ -297,7 +356,7 @@ app.post('/1rops/patches', async (req, res) => {
 
     let patchId = await knex('patches')
         .select('id')
-        .where({name: newPatch.name})
+        .where({patchName: newPatch.patchName})
         .then((data) => data);
     patchId = patchId[0].id;
 
@@ -306,6 +365,26 @@ app.post('/1rops/patches', async (req, res) => {
         .then((data) => data);
 
     res.status(201).send('Patch has been successfully added to database')
+});
+
+app.post('/1rops/preorder/:patchId', async (req, res) => {
+    let patchId = parseInt(req.params.patchId, 10);
+    let newPreorder = req.body;
+
+    await knex('pre_orders')
+        .insert(newPreorder)
+        .then((data) => data);
+
+    let preOrderId = await knex('pre_orders')
+        .max('id')
+        .then((data) => data);
+    preOrderId = preOrderId[0].max
+
+    await knex('patch_preOrder')
+        .insert({patch: patchId, preOrder: preOrderId})
+        .then((data) => data);
+
+    res.status(201).send('New pre-order has been added')
 });
 
 app.post('/1rops/:event', async (req, res) => {
