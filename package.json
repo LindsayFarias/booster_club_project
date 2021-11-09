@@ -6,7 +6,6 @@
   "scripts": {
     "test": "NODE_ENV=development jest",
     "start": "nodemon server.js"
-
   },
   "keywords": [],
   "author": "Lindsay Farias",

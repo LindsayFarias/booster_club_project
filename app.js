@@ -371,19 +371,17 @@ app.post('/1rops/preorder/:patchId', async (req, res) => {
     let patchId = parseInt(req.params.patchId, 10);
     let newPreorder = req.body;
 
-    await knex('pre_orders')
+    let preOrderId = await knex('pre_orders')
+        .returning('id')
         .insert(newPreorder)
         .then((data) => data);
-
-    let preOrderId = await knex('pre_orders')
-        .max('id')
-        .then((data) => data);
-    preOrderId = preOrderId[0].max
+    preOrderId = preOrderId[0];
 
     await knex('patch_preOrder')
         .insert({patch: patchId, preOrder: preOrderId})
         .then((data) => data);
-
+    let test = await knex('patch_preOrder')
+    console.log(test);
     res.status(201).send('New pre-order has been added')
 });
 
